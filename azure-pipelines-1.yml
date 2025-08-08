@@ -1,41 +1,50 @@
 trigger:
 - main
 
+parameters:
+- name: targetEnv
+  type: string
+  displayName: 'Target Environment'
+  default: 'dev'
+  values:
+    - dev
+    - qa
+    - prod
+
 stages:
 - stage: Build
-  displayName: "Build Stage"
+  displayName: 'Build Application'
   jobs:
-  - job: BuildApp
-    displayName: "Build Application"
+  - job: BuildJob
+    displayName: 'Build Application Job'
     pool:
       vmImage: 'ubuntu-latest'
     steps:
-    - task: DotNetCoreCLI@2
-      inputs:
-        command: 'build'
-        projects: '**/*.csproj'
+    - script: echo "Building application..."
 
-- stage: Test
-  displayName: "Test Stage"
+- stage: DevDeploy
+  displayName: 'Deploy to Dev'
   dependsOn: Build
+  condition: and(succeeded(), eq('${{ parameters.targetEnv }}', 'dev'))
   jobs:
-  - job: RunTests
-    displayName: "Run Unit Tests"
-    pool:
-      vmImage: 'ubuntu-latest'
+  - job: DevDeployJob
     steps:
-    - task: DotNetCoreCLI@2
-      inputs:
-        command: 'test'
-        projects: '**/*Tests.csproj'
+    - script: echo "Deploying to DEV environment"
 
-- stage: Deploy
-  displayName: "Deploy Stage"
-  dependsOn: Test
+- stage: QADeploy
+  displayName: 'Deploy to QA'
+  dependsOn: Build
+  condition: and(succeeded(), eq('${{ parameters.targetEnv }}', 'qa'))
   jobs:
-  - job: DeployApp
-    displayName: "Deploy Application"
-    pool:
-      vmImage: 'ubuntu-latest'
+  - job: QADeployJob
     steps:
-    - script: echo "Deploying application..."
+    - script: echo "Deploying to QA environment"
+
+- stage: ProdDeploy
+  displayName: 'Deploy to Prod'
+  dependsOn: Build
+  condition: and(succeeded(), eq('${{ parameters.targetEnv }}', 'prod'))
+  jobs:
+  - job: ProdDeployJob
+    steps:
+    - script: echo "Deploying to PROD environment"
